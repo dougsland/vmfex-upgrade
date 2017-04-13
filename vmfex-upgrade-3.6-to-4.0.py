@@ -47,7 +47,8 @@ def get_profiles(vmfex):
 def add_profiles(vm, vmfex):
     for (profile_name, profile_id) in get_profiles(vmfex).items():
         try:
-            logging.info("Adding profile name: %s, id: %s", profile_name, profile_id)
+            print("Adding profile name: '{0}'to VM: '{1}'").format(profile_name, vm.name)
+            logging.info("Adding profile name: %s, id: %s to VM: %s", profile_name, profile_id, vm.name)
             vm.nics.add(
                 params.NIC(
                     name=profile_name,
@@ -62,7 +63,8 @@ def add_profiles(vm, vmfex):
             logging.exception(e)
 
 def move_vm_to_cluster(vm, cluster):
-    logging.info("Moving the VM to cluster: %s", cluster)
+    print("Moving vm: '{0}' to cluster: '{1}'").format(vm.name, cluster)
+    logging.info("Moving VM: %s to cluster: %s", vm.name, cluster)
     vm.cluster = params.Cluster(name=cluster)
     try:
         vm.update()
@@ -75,7 +77,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("-u", "--username", help="username")
     parser.add_argument("-url", "--url", help="API URL")
-    parser.add_argument("-vm", "--vmname", help="VM name")
+    parser.add_argument("-vms", "--vmsname", help="VMS name")
     parser.add_argument("-c", "--cluster", help="Cluster name")
     if len(sys.argv) != 9:
         parser.print_help()
@@ -86,20 +88,29 @@ if __name__ == '__main__':
 
     api = API(url=args.url, username=args.username, password=password)
 
-    vm = api.vms.get(args.vmname)
-    if vm.status.state != 'down':
-        print("The VM is not down. Exiting ...")
-        logging.info("The VM is not down. Exiting ...")
-        exit()
+    for vmname in args.vmsname.split(','):
+        print("Upgrading vmfex for vm: '{0}'").format(vmname)
+        logging.info("Upgrading vmfex for vm: %s", vmname)
+        vm = api.vms.get(vmname)
+        if not vm:
+            print("VM: {0} doesn't exist. Please mske sure you provided correct VM name").format(vmname)
+            continue
 
-    vmfex = get_vmfex(vm)
-    if vmfex == None:
-        print("No vmfex property found. Exiting ...")
-        logging.info("No vmfex property found. Exiting ...")
-        exit()
+        if vm.status.state != 'down':
+            print("VM: '{0}' is not down").format(vmname)
+            logging.info("VM: %s is not down", vmname)
+            continue
 
-    logging.info("vmfex value: %s", vmfex)
+        vmfex = get_vmfex(vm)
+        if vmfex == None:
+            print("No vmfex property found for vm: '{0}'").format(vmname)
+            logging.info("No vmfex property found for vm: %s", vmname)
+            continue
 
-    add_profiles(vm, vmfex)
+        print("vmfex for VM: '{0}' is: '{1}'").format(vm.name, vmfex)
+        logging.info("vmfex value: %s", vmfex)
 
-    move_vm_to_cluster(vm, args.cluster)
+        add_profiles(vm, vmfex)
+
+        move_vm_to_cluster(vm, args.cluster)
+        print("Upgrading vmfex for vm: '{0}' completed").format(vmname)
