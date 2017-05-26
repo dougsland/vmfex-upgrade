@@ -28,12 +28,14 @@ from ovirtsdk.xml import params
 
 logging.basicConfig(level=logging.DEBUG, filename='vmfex-upgrade.log')
 
+
 def get_vmfex(vm):
     if vm.custom_properties:
         for custom_property in vm.custom_properties.custom_property:
             if custom_property.name == "vmfex":
                 return custom_property.value
     return None
+
 
 def get_profiles(vmfex):
     vmfex_dict = ast.literal_eval(vmfex)
@@ -44,10 +46,13 @@ def get_profiles(vmfex):
 
     return profile_name_to_id
 
+
 def add_profiles(vm, vmfex):
     for (profile_name, profile_id) in get_profiles(vmfex).items():
         try:
-            logging.info("Adding profile name: %s, id: %s", profile_name, profile_id)
+            logging.info(
+                "Adding profile name: %s, id: %s", profile_name, profile_id
+            )
             vm.nics.add(
                 params.NIC(
                     name=profile_name,
@@ -61,6 +66,7 @@ def add_profiles(vm, vmfex):
             # probably adding an existing vnic. Ignore this exception
             logging.exception(e)
 
+
 def move_vm_to_cluster(vm, cluster):
     logging.info("Moving the VM to cluster: %s", cluster)
     vm.cluster = params.Cluster(name=cluster)
@@ -68,7 +74,8 @@ def move_vm_to_cluster(vm, cluster):
         vm.update()
     except Exception as e:
         # getting exception that VM cannot be updated if some of the specified
-        # custom properties are not configured by the system. Ignoring this exception.
+        # custom properties are not configured by the system.
+        # Ignoring this exception.
         logging.exception(e)
 
 if __name__ == '__main__':
@@ -82,7 +89,9 @@ if __name__ == '__main__':
         exit()
 
     args = parser.parse_args()
-    password = getpass.getpass(prompt='Please enter RHV Manager admin password: ')
+    password = getpass.getpass(
+        prompt='Please enter RHV Manager admin password: '
+    )
 
     api = API(url=args.url, username=args.username, password=password)
 
@@ -93,7 +102,7 @@ if __name__ == '__main__':
         exit()
 
     vmfex = get_vmfex(vm)
-    if vmfex == None:
+    if vmfex is None:
         print("No vmfex property found. Exiting ...")
         logging.info("No vmfex property found. Exiting ...")
         exit()
